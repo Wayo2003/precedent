@@ -15,7 +15,7 @@ const H = { Accept: 'application/json', 'Content-Type': 'application/json' };
 async function json(res, what) {
   const text = await res.text();
   if (res.status === 401 || res.status === 403) {
-    if (/wiki|confluence/i.test(what)) throw new Error('Precedent is not installed in Confluence on this site (or you lack access). Open the installation link again, choose Confluence, install, then retry.');
+    if (/wiki|confluence/i.test(what)) throw new Error(`${what}: Confluence returned ${res.status}. Precedent must be installed in Confluence on this site too (open the installation link again and choose Confluence). Details: ${text.slice(0, 200)}`);
   }
   if (!res.ok) throw new Error(`${what} failed (${res.status}): ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
