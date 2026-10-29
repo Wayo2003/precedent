@@ -1,0 +1,208 @@
+modules:
+  # ---------------------------------------------------------------- Rovo agent
+  rovo:agent:
+    - key: precedent-agent
+      name: Precedent
+      description: The decision memory of your software team. Tells you what was already decided, by whom and why, and warns when an issue or a plan reopens a settled decision.
+      prompt: >
+        You are Precedent, the decision memory of a software team. The team records
+        Architecture Decision Records (ADRs) in Confluence (child pages of "Decision Log").
+        Each ADR has a status, date, owner, context, decision, rejected alternatives and
+        consequences.
+
+
+        How to work:
+
+        1. Never answer from your own opinion about what the team decided. ALWAYS call
+        find-decisions, decision-log, check-issue or check-plan first, and quote ADR keys,
+        owners and dates from the results.
+
+        2. When an issue or plan REOPENS a decision, say so first and plainly, explain why the
+        team rejected that option (from the ADR), and suggest either aligning with the decision
+        or recording a new ADR that supersedes it. When it relies on a SUPERSEDED decision,
+        point to the decision that replaced it.
+
+        3. If the user asks to record a decision, gather a title, the decision, the context and
+        the rejected alternatives (ask briefly for anything missing), then call record-decision.
+        If it replaces an older ADR, pass its key in supersedes.
+
+        4. Be concise and practical: engineers want "yes, go ahead" or "no, because ADR-003,
+        talk to Chen" in two lines, with links.
+      conversationStarters:
+        - What did we decide about date libraries?
+        - Does this issue conflict with any past decision?
+        - Show me our decision log
+        - Record a new architecture decision
+      actions:
+        - find-decisions
+        - decision-log
+        - check-plan
+        - check-issue
+        - record-decision
+
+  # ---------------------------------------------------------------- MCP server (same tools for coding agents)
+  rovo:mcp:
+    - key: precedent-mcp
+      name: Precedent decisions
+      tools:
+        - find-decisions
+        - decision-log
+        - check-plan
+        - check-issue
+        - record-decision
+
+  action:
+    - key: find-decisions
+      name: Find past decisions
+      function: findDecisionsFn
+      actionVerb: GET
+      description: >
+        Searches the team's Architecture Decision Records (ADRs): status, date, owner, decision, rejected
+        alternatives and link. Use it for "what did we decide about X" or "can we use Y".
+      inputs:
+        query:
+          title: Question or topic
+          type: string
+          required: false
+          description: Topic or question in plain words, e.g. "date library", "can we use MongoDB". Empty returns all decisions.
+    - key: decision-log
+      name: List the decision log
+      function: decisionLogFn
+      actionVerb: GET
+      description: Lists every ADR in the decision log, one line each, with status (accepted / superseded), date and owner.
+    - key: check-plan
+      name: Check a plan against decisions
+      function: checkPlanFn
+      actionVerb: GET
+      description: >
+        Checks a planned change against the team's decisions: reopens one (proposes a rejected option),
+        relies on a superseded one, or related. Coding agents should call it before choosing a library,
+        datastore, API style or tool.
+      inputs:
+        plan:
+          title: Planned change
+          type: string
+          required: true
+          description: The planned change in plain words, e.g. "store sessions in MongoDB" or "add a GraphQL endpoint".
+    - key: check-issue
+      name: Check a Jira issue against decisions
+      function: checkIssueFn
+      actionVerb: GET
+      description: Checks a Jira issue's summary and description against the decision log and explains any conflicts.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: The Jira issue key, e.g. ORB-3. Optional when the chat is opened from that issue.
+    - key: record-decision
+      name: Record a decision (ADR)
+      function: recordDecisionFn
+      actionVerb: CREATE
+      description: >
+        Records a new Architecture Decision Record as the next numbered ADR page under the Confluence
+        Decision Log; can supersede an older ADR and comment on a related Jira issue.
+      inputs:
+        title:
+          title: Title
+          type: string
+          required: true
+          description: Short title of the decision, e.g. "Use PostgreSQL read replicas for reporting".
+        decision:
+          title: Decision
+          type: string
+          required: true
+          description: What was decided, in one or two sentences.
+        context:
+          title: Context
+          type: string
+          required: false
+          description: Why the decision was needed.
+        alternatives:
+          title: Rejected alternatives
+          type: string
+          required: false
+          description: 'Rejected options separated by semicolons, each as "Name (aliases): why", e.g. "MongoDB (Mongo): no transactions".'
+        consequences:
+          title: Consequences
+          type: string
+          required: false
+          description: What changes because of this decision.
+        tags:
+          title: Tags
+          type: string
+          required: false
+          description: Comma-separated topics, e.g. "datastore, reporting".
+        owner:
+          title: Decided by
+          type: string
+          required: false
+          description: Who made the decision, e.g. "Ana Ruiz (Staff Engineer)".
+        supersedes:
+          title: Supersedes
+          type: string
+          required: false
+          description: Key of an older ADR this replaces, e.g. ADR-008.
+        issueKey:
+          title: Related issue
+          type: string
+          required: false
+          description: Optional Jira issue key to link and comment on.
+
+  # ---------------------------------------------------------------- Jira UI
+  jira:projectPage:
+    - key: precedent-project-page
+      title: Precedent
+      resource: project-page
+      resolver:
+        function: resolver
+      render: native
+
+  jira:issueContext:
+    - key: precedent-issue-context
+      title: Precedent
+      label: Past decisions
+      resource: issue-context
+      resolver:
+        function: resolver
+      render: native
+
+  # ---------------------------------------------------------------- functions
+  function:
+    - key: resolver
+      handler: index.handler
+    - key: findDecisionsFn
+      handler: index.findDecisions
+    - key: decisionLogFn
+      handler: index.decisionLog
+    - key: checkPlanFn
+      handler: index.checkPlan
+    - key: checkIssueFn
+      handler: index.checkIssue
+    - key: recordDecisionFn
+      handler: index.recordDecisionAction
+
+resources:
+  - key: project-page
+    path: src/frontend/project.jsx
+  - key: issue-context
+    path: src/frontend/issue.jsx
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:space:confluence
+    - read:page:confluence
+    - write:page:confluence
+    - write:label:confluence
+    - write:confluence-content
+    - search:confluence
+    - read:confluence-content.all
+
+app:
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/91f822bf-46cd-487a-8f9a-4b91e0fd96b7
