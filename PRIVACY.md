@@ -10,6 +10,6 @@ Precedent is an Atlassian Forge app that runs entirely on Atlassian's infrastruc
 
 **What Precedent stores.** Nothing. Precedent has no database and no app storage; it does not copy, cache or export your data, and it sends no data to any service outside Atlassian. The app declares no egress (external network access) in its manifest.
 
-**AI.** The Precedent agent runs inside Atlassian Rovo; MCP clients you connect run under your own account and the OAuth consent you give and is subject to Atlassian's AI and data policies. Precedent itself does not call any external AI service.
+**AI.** The Precedent agent runs inside Atlassian Rovo and is subject to Atlassian's AI and data policies. MCP clients you connect act under your own account, with the OAuth consent you give. Precedent itself does not call any external AI service.
 
 **Contact.** Questions or requests: open an issue at https://github.com/Wayo2003/precedent/issues.
