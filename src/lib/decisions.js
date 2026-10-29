@@ -42,7 +42,8 @@ function sections(html) {
 
 // "MongoDB (Mongo, document store): no transactions across aggregates" -> { name, aliases, why }
 function parseAlternative(line) {
-  const m = line.match(/^\s*([^:(–-]+?)\s*(?:\(([^)]*)\))?\s*(?:[:–-]\s*(.*))?$/);
+  // Hyphens inside names ("Server-side", "Long-lived") are kept; only ":", "–" or " - " separate the reason.
+  const m = line.match(/^\s*((?:[^:(–\s-]|\s(?!-\s)|-(?!\s))+?)\s*(?:\(([^)]*)\))?\s*(?:(?::|–|\s-\s)\s*(.*))?$/);
   if (!m) return null;
   const name = m[1].trim();
   if (!name) return null;

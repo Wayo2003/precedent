@@ -38,3 +38,9 @@ test('search and agent text', () => {
   assert.equal(search('can we use mongo?', adrs)[0].key, 'ADR-001');
   assert.match(describeFindings(check('add redux store for payouts', adrs), 'this plan'), /WARNING.*\n- REOPENS ADR-007/);
 });
+
+test('keeps hyphenated alternative names', () => {
+  assert.deepEqual(adrs[4].alternatives.map((a) => a.name), ['Server-side session cookies', 'Long-lived API keys for users']);
+  assert.deepEqual(adrs[4].alternatives[0].aliases, ['session cookie', 'sticky sessions']);
+  assert.match(adrs[4].alternatives[0].why, /^need shared session storage/);
+});
